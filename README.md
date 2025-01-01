@@ -1,6 +1,8 @@
-# React + Vite
+# PWA mobile app React + Vite
+![obraz](https://github.com/user-attachments/assets/9143a763-15d1-4dec-a82b-f472eeb4eb32)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Description
+TODO
 
 Currently, two official plugins are available:
 
