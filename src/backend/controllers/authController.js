@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { connection } from "../db.js";
 
 export const registerUser = (req, res) => {
-  const { username, email, password } = req.body;
+  const {email, password } = req.body;
 
   const query = "SELECT * FROM user WHERE email = ?";
   connection.query(query, [email], (err, result) => {
@@ -16,8 +16,8 @@ export const registerUser = (req, res) => {
     bcrypt.hash(password, 10, (err, hashedPassword) => {
       if (err) return res.status(500).json({ message: "Error hashing password", error: err });
 
-      const insertQuery = "INSERT INTO user (username, email, password) VALUES (?, ?, ?)";
-      connection.query(insertQuery, [username, email, hashedPassword], (err, result) => {
+      const insertQuery = "INSERT INTO user (email, password) VALUES (?, ?)";
+      connection.query(insertQuery, [email, hashedPassword], (err) => {
         if (err) return res.status(500).json({ message: "Error inserting user", error: err });
         return res.status(201).json({ message: "User registered successfully" });
       });
