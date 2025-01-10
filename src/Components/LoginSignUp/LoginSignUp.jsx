@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './LoginSignUp.css';
 
 const LoginSignUp = () => {
   const [email, setEmail] = useState("");
@@ -15,6 +14,7 @@ const LoginSignUp = () => {
         password
       });
       console.log("Login successful:", response.data);
+      localStorage.setItem("token", response.data.token);
       alert("Login successful!");
       navigate('/home');
     } catch (error) {
@@ -30,6 +30,7 @@ const LoginSignUp = () => {
         password
       });
       console.log("Sign Up successful:", response.data);
+      localStorage.setItem("token", response.data.token);
       alert("Sign Up successful!");
       navigate('/home');
     } catch (error) {
@@ -39,7 +40,7 @@ const LoginSignUp = () => {
   };
 
   return (
-    <div className='container'>
+    <div className='login-container'>
       <div className="header">
         <div className="text">Login / Sign Up</div>
       </div>

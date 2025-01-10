@@ -74,8 +74,8 @@ export const getUserBalances = (req, res) => {
 };
 
 
-export const verifyToken = (req, res, next) => {
-  const token = req.headers["authorization"];
+const verifyToken = (req, res, next) => {
+  const token = req.body.authorization;
 
   if (!token) {
     return res.status(403).json({ message: "Token is required" });

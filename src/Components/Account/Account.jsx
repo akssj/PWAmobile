@@ -3,9 +3,9 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
+  const [balances, setBalances] = useState([]);
   const [message, setMessage] = useState('');
   const [isOffline, setIsOffline] = useState(false);
-  const [exchangeRates, setExchangeRates] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,10 +18,11 @@ const Home = () => {
 
     if (navigator.onLine) {
       axios
-        .get('http://localhost:3000/api/data/getExchangeRates')
+        .post('http://localhost:3000/api/auth/balance', {
+          authorization: localStorage.getItem('token'),
+        })
         .then((response) => {
-          const rates = response.data[0]?.rates || [];
-          setExchangeRates(rates);
+          setBalances(response.data);
         })
         .catch((error) => {
           console.error(error);
@@ -37,8 +38,8 @@ const Home = () => {
     };
   }, []);
 
-  const handleAccountPress = () => {
-    navigate('/account');
+  const handleHomePress = () => {
+    navigate('/home');
   };
 
   const handleLogoutPress = () => {
@@ -52,8 +53,8 @@ const Home = () => {
   return (
     <div className="home-container">
       <div className="navbar">
-        <div className="navButton" onClick={handleAccountPress}>
-          <span className="navButtonText">Konto</span>
+      <div className="navButton" onClick={handleHomePress}>
+          <span className="navButtonText">Home</span>
         </div>
         <div className="navButton" onClick={handleLogoutPress}>
           <span className="navButtonText">Wyloguj</span>
@@ -65,20 +66,17 @@ const Home = () => {
         ) : (
           <>
             <p className="message">{message}</p>
-            {exchangeRates.length > 0 ? (
-              <div className="exchangeRatesGrid">
-                {exchangeRates.map((rate, index) => (
-                  <div key={index} className="exchangeRateCard">
-                    <div className="currencyName">{rate.currency}</div>
-                    <div className="rate">
-                      <div className="rateItem">Kupno: <span className="bidRate">{rate.bid}</span></div>
-                      <div className="rateItem">Sprzedaż: <span className="askRate">{rate.ask}</span></div>
-                    </div>
+            {balances.length > 0 ? (
+              <div className="balancesGrid">
+                {balances.map((balance) => (
+                  <div key={balance.id} className="balanceCard">
+                    <div className="currencyName">{balance.currency}</div>
+                    <div className="balanceAmount">Saldo: {balance.balance.toFixed(2)}</div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="message">Ładowanie kursów walut...</p>
+              <p className="message">Ładowanie danych konta...</p>
             )}
           </>
         )}
