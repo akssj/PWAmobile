@@ -45,12 +45,34 @@ export const loginUser = (req, res) => {
         return res.status(400).json({ message: "Invalid email or password" });
       }
 
-      const token = jwt.sign({ id: user.id, email: user.email }, "your_jwt_secret", { expiresIn: "1h" });
+      const token = jwt.sign({ id: user.id, email: user.email }, "secret", { expiresIn: "1h" });
 
       return res.status(200).json({ message: "Login successful", token });
     });
   });
 };
+
+export const getUserBalances = (req, res) => {
+  verifyToken(req, res, async () => {
+    const userId = req.user.id;
+
+    try {
+      const [result] = await connection.promise().query(
+        "SELECT * FROM user_balances WHERE user_id = ?",
+        [userId]
+      );
+
+      if (result.length === 0) {
+        return res.status(404).json({ message: "No balances found for this user." });
+      }
+
+      return res.status(200).json(result);
+    } catch (error) {
+      return res.status(500).json({ message: "Error fetching user balances", error: error.message });
+    }
+  });
+};
+
 
 export const verifyToken = (req, res, next) => {
   const token = req.headers["authorization"];
@@ -59,7 +81,7 @@ export const verifyToken = (req, res, next) => {
     return res.status(403).json({ message: "Token is required" });
   }
 
-  jwt.verify(token, "your_jwt_secret", (err, decoded) => {
+  jwt.verify(token, "secret", (err, decoded) => {
     if (err) {
       return res.status(401).json({ message: "Invalid or expired token" });
     }
@@ -67,3 +89,4 @@ export const verifyToken = (req, res, next) => {
     next();
   });
 };
+
