@@ -49,6 +49,10 @@ const Home = () => {
     }
   };
 
+  const handleCurrencyClick = (currencyCode) => {
+    navigate(`/currency/${currencyCode}`);
+  };
+
   return (
     <div className="home-container">
       <div className="navbar">
@@ -68,7 +72,7 @@ const Home = () => {
             {exchangeRates.length > 0 ? (
               <div className="exchangeRatesGrid">
                 {exchangeRates.map((rate, index) => (
-                  <div key={index} className="exchangeRateCard">
+                  <div key={index} className="exchangeRateCard" onClick={() => handleCurrencyClick(rate.code)}>
                     <div className="currencyName">{rate.currency}</div>
                     <div className="rate">
                       <div className="rateItem">Kupno: <span className="bidRate">{rate.bid}</span></div>
