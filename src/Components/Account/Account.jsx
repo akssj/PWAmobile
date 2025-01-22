@@ -6,6 +6,7 @@ const Home = () => {
   const [balances, setBalances] = useState([]);
   const [message, setMessage] = useState('');
   const [isOffline, setIsOffline] = useState(false);
+  const [amountToSell, setAmountToSell] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,10 +51,65 @@ const Home = () => {
     }
   };
 
+  const handleAddFunds = () => {
+    axios
+      .post('http://localhost:3000/api/trade/addFunds', {
+        authorization: localStorage.getItem('token'),
+      })
+      .then((response) => {
+        setMessage(response.data.message || 'Dodano środki!');
+        return axios.post('http://localhost:3000/api/auth/balance', {
+          authorization: localStorage.getItem('token'),
+        });
+      })
+      .then((response) => {
+        setBalances(response.data);
+      })
+      .catch((error) => {
+        setMessage(
+          error.response?.data?.message || 'Wystąpił błąd podczas dodawania środków.'
+        );
+      });
+  };
+
+  const handleSellCurrency = (currency) => {
+    if (amountToSell[currency] <= 0) {
+      setMessage('Proszę podać prawidłową ilość do sprzedaży.');
+      return;
+    }
+
+    axios
+      .post('http://localhost:3000/api/trade/sell', {
+        source_currency: currency,
+        amount: amountToSell[currency],
+        authorization: localStorage.getItem('token'),
+      })
+      .then((response) => {
+        setMessage(response.data.message || 'Transakcja sprzedaży udana!');
+        return axios.post('http://localhost:3000/api/auth/balance', {
+          authorization: localStorage.getItem('token'),
+        });
+      })
+      .then((response) => {
+        setBalances(response.data);
+        setAmountToSell({ ...amountToSell, [currency]: '' });
+      })
+      .catch((error) => {
+        setMessage(
+          error.response?.data?.message || 'Wystąpił błąd podczas realizacji sprzedaży.'
+        );
+      });
+  };
+
+  const handleInputChange = (e, currency) => {
+    const { value } = e.target;
+    setAmountToSell((prev) => ({ ...prev, [currency]: value }));
+  };
+
   return (
     <div className="home-container">
       <div className="navbar">
-      <div className="navButton" onClick={handleHomePress}>
+        <div className="navButton" onClick={handleHomePress}>
           <span className="navButtonText">Home</span>
         </div>
         <div className="navButton" onClick={handleLogoutPress}>
@@ -72,6 +128,29 @@ const Home = () => {
                   <div key={balance.id} className="balanceCard">
                     <div className="currencyName">{balance.currency}</div>
                     <div className="balanceAmount">Saldo: {balance.balance.toFixed(2)}</div>
+                    {balance.currency === 'PLN' ? (
+                      <div className="addFundsAction">
+                        <button className="addFundsButton" onClick={handleAddFunds}>
+                          Add Funds
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="sellAction">
+                        <input
+                          type="number"
+                          value={amountToSell[balance.currency] || ''}
+                          onChange={(e) => handleInputChange(e, balance.currency)}
+                          placeholder="Ilość do sprzedaży"
+                          min="0"
+                        />
+                        <button
+                          className="sellButton"
+                          onClick={() => handleSellCurrency(balance.currency)}
+                        >
+                          Sell
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

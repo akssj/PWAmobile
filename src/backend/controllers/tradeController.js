@@ -3,44 +3,56 @@ import axios from "axios";
 import jwt from 'jsonwebtoken';
 
 export const addFunds = (req, res) => {
-  const userId = req.body.user_id;
-  const amount = 1000;
+  const token = req.body.authorization;
+  if (!token) {
+    return res.status(401).json({ message: 'Brak tokenu uwierzytelniającego.' });
+  }
 
-  connection.query(
-    `SELECT * FROM user_balances WHERE user_id = ? AND currency = "PLN"`,
-    [userId],
-    (err, result) => {
-      if (err) {
-        return res.status(500).json({ message: "Błąd bazy danych", error: err.message });
-      }
-
-      if (result.length > 0) {
-        const newBalance = result[0].balance + amount;
-
-        connection.query(
-          `UPDATE user_balances SET balance = ?, updated_at = NOW() WHERE user_id = ? AND currency = "PLN"`,
-          [newBalance, userId],
-          (err) => {
-            if (err) {
-              return res.status(500).json({ message: "Błąd podczas aktualizacji salda", error: err.message });
-            }
-            return res.status(200).json({ message: `Saldo zostało zasilone o ${amount} PLN.` });
-          }
-        );
-      } else {
-        connection.query(
-          `INSERT INTO user_balances (user_id, currency, balance) VALUES (?, "PLN", ?)`,
-          [userId, amount],
-          (err) => {
-            if (err) {
-              return res.status(500).json({ message: "Błąd podczas dodawania salda", error: err.message });
-            }
-            return res.status(200).json({ message: `Utworzono nowe saldo w PLN i zasilono je o ${amount}.` });
-          }
-        );
-      }
+  jwt.verify(token, "secret", (err, decodedToken) => {
+    if (err) {
+      return res.status(401).json({ message: 'Nieprawidłowy lub wygasły token.' });
     }
-  );
+
+    const userId = decodedToken.id; 
+    const amount = 1000;
+
+    connection.query(
+      `SELECT * FROM user_balances WHERE user_id = ? AND currency = "PLN"`,
+      [userId],
+      (err, result) => {
+        if (err) {
+          return res.status(500).json({ message: "Błąd bazy danych", error: err.message });
+        }
+
+        if (result.length > 0) {
+          const newBalance = result[0].balance + amount;
+
+          connection.query(
+            `UPDATE user_balances SET balance = ?, updated_at = NOW() WHERE user_id = ? AND currency = "PLN"`,
+            [newBalance, userId],
+            (err) => {
+              if (err) {
+                return res.status(500).json({ message: "Błąd podczas aktualizacji salda", error: err.message });
+              }
+              return res.status(200).json({ message: `Saldo zostało zasilone o ${amount} PLN.` });
+            }
+          );
+        } else {
+
+          connection.query(
+            `INSERT INTO user_balances (user_id, currency, balance) VALUES (?, "PLN", ?)`,
+            [userId, amount],
+            (err) => {
+              if (err) {
+                return res.status(500).json({ message: "Błąd podczas dodawania salda", error: err.message });
+              }
+              return res.status(200).json({ message: `Utworzono nowe saldo w PLN i zasilono je o ${amount}.` });
+            }
+          );
+        }
+      }
+    );
+  });
 };
 
 export const purchaseCurrency = async (req, res) => {
@@ -116,7 +128,16 @@ export const purchaseCurrency = async (req, res) => {
 
 
 export const sellCurrency = async (req, res) => {
-  const { user_id, source_currency, target_currency, amount } = req.body;
+  const { source_currency, amount, authorization } = req.body;
+  
+
+  if (!authorization) {
+    return res.status(401).json({ message: 'Brak tokenu uwierzytelniającego.' });
+  }
+
+  const decodedToken = jwt.verify(req.body.authorization, "secret");
+  const user_id = decodedToken.id;
+  console.log(req.body);
 
   try {
     const [result] = await connection.promise().query(
@@ -134,7 +155,7 @@ export const sellCurrency = async (req, res) => {
       return res.status(400).json({ message: "Brak wystarczających środków w wybranej walucie." });
     }
 
-    const { bid } = await getExchangeRate(source_currency);
+    const { bid } = await getExchangeRate(source_currency, "PLN");
 
     const targetAmount = amount * bid;
 
@@ -145,30 +166,32 @@ export const sellCurrency = async (req, res) => {
 
     const [targetResult] = await connection.promise().query(
       `SELECT * FROM user_balances WHERE user_id = ? AND currency = ?`,
-      [user_id, target_currency]
+      [user_id, "PLN"]
     );
 
     if (targetResult.length > 0) {
       const newTargetBalance = targetResult[0].balance + targetAmount;
       await connection.promise().query(
         `UPDATE user_balances SET balance = ?, updated_at = NOW() WHERE user_id = ? AND currency = ?`,
-        [newTargetBalance, user_id, target_currency]
+        [newTargetBalance, user_id, "PLN"]
       );
     } else {
+
       await connection.promise().query(
         `INSERT INTO user_balances (user_id, currency, balance) VALUES (?, ?, ?)`,
-        [user_id, target_currency, targetAmount]
+        [user_id, "PLN", targetAmount]
       );
     }
 
     return res.status(200).json({
-      message: `Sprzedano ${amount} ${source_currency} za ${targetAmount.toFixed(2)} ${target_currency} po kursie bid ${bid}.`,
+      message: `Sprzedano ${amount} ${source_currency} za ${targetAmount.toFixed(2)} PLN po kursie bid ${bid}.`,
     });
 
   } catch (error) {
     return res.status(500).json({ message: "Błąd podczas realizacji transakcji", error: error.message });
   }
 };
+
 
 export const getExchangeRate = async (Currency) => {
   try {
