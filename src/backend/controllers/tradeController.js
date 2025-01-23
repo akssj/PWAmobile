@@ -2,6 +2,7 @@ import { connection } from "../db.js";
 import axios from "axios";
 import jwt from 'jsonwebtoken';
 
+// Dodawanie funduszy 
 export const addFunds = (req, res) => {
   const token = req.body.authorization;
   if (!token) {
@@ -38,7 +39,6 @@ export const addFunds = (req, res) => {
             }
           );
         } else {
-
           connection.query(
             `INSERT INTO user_balances (user_id, currency, balance) VALUES (?, "PLN", ?)`,
             [userId, amount],
@@ -55,6 +55,7 @@ export const addFunds = (req, res) => {
   });
 };
 
+// Zakup waluty
 export const purchaseCurrency = async (req, res) => {
   const { target_currency, amount, authorization } = req.body;
 
@@ -114,6 +115,11 @@ export const purchaseCurrency = async (req, res) => {
       );
     }
 
+    await connection.promise().query(
+      `INSERT INTO user_buy_history (user_id, target_currency, amount, ask) VALUES (?, ?, ?, ?)`,
+      [user_id, target_currency, amount, ask]
+    );
+
     return res.status(200).json({
       message: `Zakupiono ${amount.toFixed(2)} ${target_currency} za ${requiredPLN.toFixed(2)} PLN po kursie sprzedaży (ask) ${ask.toFixed(4)}.`,
     });
@@ -126,11 +132,10 @@ export const purchaseCurrency = async (req, res) => {
   }
 };
 
-
+// Sprzedaż waluty
 export const sellCurrency = async (req, res) => {
   const { source_currency, amount, authorization } = req.body;
   
-
   if (!authorization) {
     return res.status(401).json({ message: 'Brak tokenu uwierzytelniającego.' });
   }
@@ -183,6 +188,11 @@ export const sellCurrency = async (req, res) => {
       );
     }
 
+    await connection.promise().query(
+      `INSERT INTO user_sell_history (user_id, source_currency, amount, bid) VALUES (?, ?, ?, ?)`,
+      [user_id, source_currency, amount, bid]
+    );
+
     return res.status(200).json({
       message: `Sprzedano ${amount} ${source_currency} za ${targetAmount.toFixed(2)} PLN po kursie bid ${bid}.`,
     });
@@ -191,7 +201,6 @@ export const sellCurrency = async (req, res) => {
     return res.status(500).json({ message: "Błąd podczas realizacji transakcji", error: error.message });
   }
 };
-
 
 export const getExchangeRate = async (Currency) => {
   try {

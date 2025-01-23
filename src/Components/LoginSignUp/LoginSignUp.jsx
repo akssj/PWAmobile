@@ -3,52 +3,59 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const LoginSignUp = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      alert('Proszę wypełnić oba pola.');
+      return;
+    }
+
     try {
-      const response = await axios.post("http://localhost:3000/api/auth/login", {
+      const response = await axios.post('http://localhost:3000/api/auth/login', {
         email,
-        password
+        password,
       });
-      console.log("Login successful:", response.data);
-      localStorage.setItem("token", response.data.token);
-      alert("Login successful!");
+      localStorage.setItem('token', response.data.token);
+      alert('Logowanie zakończone sukcesem!');
       navigate('/home');
     } catch (error) {
-      console.error("Login failed:", error);
-      alert("Login failed. Please check your credentials.");
+      console.error('Błąd logowania:', error);
+      alert('Nie udało się zalogować. Sprawdź swoje dane.');
     }
   };
 
   const handleSignUp = async () => {
+    if (!email || !password) {
+      alert('Proszę wypełnić oba pola.');
+      return;
+    }
+
     try {
-      const response = await axios.post("http://localhost:3000/api/auth/register", {
+      const response = await axios.post('http://localhost:3000/api/auth/register', {
         email,
-        password
+        password,
       });
-      console.log("Sign Up successful:", response.data);
-      localStorage.setItem("token", response.data.token);
-      alert("Sign Up successful!");
-      navigate('/home');
+      localStorage.setItem('token', response.data.token);
+      alert('Rejestracja zakończona sukcesem! Możesz się teraz zalogować.');
     } catch (error) {
-      console.error("Sign Up failed:", error);
-      alert("Sign Up failed. Please try again.");
+      console.error('Błąd rejestracji:', error);
+      alert('Rejestracja nie powiodła się. Spróbuj ponownie.');
     }
   };
 
   return (
-    <div className='login-container'>
-      <div className="header">
-        <div className="text">Login / Sign Up</div>
-      </div>
+    <div className="login-container">
+      <header className="header">
+        <h1>Login / Sign Up</h1>
+      </header>
       <div className="inputs">
         <div className="input">
           <input
             type="email"
-            placeholder="Enter Email"
+            placeholder="Wprowadź email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -56,26 +63,19 @@ const LoginSignUp = () => {
         <div className="input">
           <input
             type="password"
-            placeholder="Enter Password"
+            placeholder="Wprowadź hasło"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
       </div>
-
       <div className="submit-container">
-        <div
-          className="submit"
-          onClick={handleLogin}
-        >
-          Login
-        </div>
-        <div
-          className="submit"
-          onClick={handleSignUp}
-        >
-          Sign Up
-        </div>
+        <button className="submit" onClick={handleLogin}>
+          Zaloguj
+        </button>
+        <button className="submit" onClick={handleSignUp}>
+          Zarejestruj
+        </button>
       </div>
     </div>
   );

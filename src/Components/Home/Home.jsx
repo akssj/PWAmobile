@@ -9,41 +9,35 @@ const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleNetworkStatus = () => {
-      setIsOffline(!navigator.onLine);
+    const updateNetworkStatus = () => setIsOffline(!navigator.onLine);
+
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+
+    const fetchExchangeRates = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/data/getExchangeRates');
+        const rates = response.data[0]?.rates || [];
+        setExchangeRates(rates);
+      } catch (error) {
+        console.error(error);
+        setMessage('Wystąpił błąd przy pobieraniu danych.');
+      }
     };
 
-    window.addEventListener('online', handleNetworkStatus);
-    window.addEventListener('offline', handleNetworkStatus);
-
-    if (navigator.onLine) {
-      axios
-        .get('http://localhost:3000/api/data/getExchangeRates')
-        .then((response) => {
-          const rates = response.data[0]?.rates || [];
-          setExchangeRates(rates);
-        })
-        .catch((error) => {
-          console.error(error);
-          setMessage('Wystąpił błąd przy pobieraniu danych.');
-        });
-    } else {
-      setIsOffline(true);
-    }
+    if (navigator.onLine) fetchExchangeRates();
+    else setIsOffline(true);
 
     return () => {
-      window.removeEventListener('online', handleNetworkStatus);
-      window.removeEventListener('offline', handleNetworkStatus);
+      window.removeEventListener('online', updateNetworkStatus);
+      window.removeEventListener('offline', updateNetworkStatus);
     };
   }, []);
 
-  const handleAccountPress = () => {
-    navigate('/account');
-  };
+  const handleAccountPress = () => navigate('/account');
 
   const handleLogoutPress = () => {
-    const confirmLogout = window.confirm('Czy na pewno chcesz się wylogować?');
-    if (confirmLogout) {
+    if (window.confirm('Czy na pewno chcesz się wylogować?')) {
       localStorage.removeItem('token');
       navigate('/');
     }
@@ -63,20 +57,29 @@ const Home = () => {
           <span className="navButtonText">Wyloguj</span>
         </div>
       </div>
+
       <div className="content">
         {isOffline ? (
           <p className="message">Jesteś offline. Wyświetlane są dane w pamięci podręcznej.</p>
         ) : (
           <>
-            <p className="message">{message}</p>
+            {message && <p className="message">{message}</p>}
             {exchangeRates.length > 0 ? (
               <div className="exchangeRatesGrid">
                 {exchangeRates.map((rate, index) => (
-                  <div key={index} className="exchangeRateCard" onClick={() => handleCurrencyClick(rate.code)}>
+                  <div
+                    key={index}
+                    className="exchangeRateCard"
+                    onClick={() => handleCurrencyClick(rate.code)}
+                  >
                     <div className="currencyName">{rate.currency}</div>
                     <div className="rate">
-                      <div className="rateItem">Kupno: <span className="bidRate">{rate.bid}</span></div>
-                      <div className="rateItem">Sprzedaż: <span className="askRate">{rate.ask}</span></div>
+                      <div className="rateItem">
+                        Kupno: <span className="bidRate">{rate.bid.toFixed(4)}</span>
+                      </div>
+                      <div className="rateItem">
+                        Sprzedaż: <span className="askRate">{rate.ask.toFixed(4)}</span>
+                      </div>
                     </div>
                   </div>
                 ))}

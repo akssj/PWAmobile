@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
   const [balances, setBalances] = useState([]);
+  const [buyHistory, setBuyHistory] = useState([]);
+  const [sellHistory, setSellHistory] = useState([]);
   const [message, setMessage] = useState('');
   const [isOffline, setIsOffline] = useState(false);
   const [amountToSell, setAmountToSell] = useState({});
@@ -17,21 +19,28 @@ const Home = () => {
     window.addEventListener('online', handleNetworkStatus);
     window.addEventListener('offline', handleNetworkStatus);
 
-    if (navigator.onLine) {
-      axios
-        .post('http://localhost:3000/api/auth/balance', {
-          authorization: localStorage.getItem('token'),
-        })
-        .then((response) => {
-          setBalances(response.data);
-        })
-        .catch((error) => {
-          console.error(error);
-          setMessage('Wystąpił błąd przy pobieraniu danych.');
-        });
-    } else {
-      setIsOffline(true);
-    }
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('Brak tokenu. Zaloguj się ponownie.');
+
+        const [balancesResponse, buyHistoryResponse, sellHistoryResponse] = await Promise.all([
+          axios.post('http://localhost:3000/api/auth/balance', { authorization: token }),
+          axios.post('http://localhost:3000/api/auth/buyHistory', { authorization: token }),
+          axios.post('http://localhost:3000/api/auth/sellHistory', { authorization: token }),
+        ]);
+
+        setBalances(balancesResponse.data);
+        setBuyHistory(buyHistoryResponse.data);
+        setSellHistory(sellHistoryResponse.data);
+      } catch (error) {
+        console.error(error);
+        setMessage('Wystąpił błąd przy pobieraniu danych.');
+      }
+    };
+
+    if (navigator.onLine) fetchData();
+    else setIsOffline(true);
 
     return () => {
       window.removeEventListener('online', handleNetworkStatus);
@@ -39,66 +48,58 @@ const Home = () => {
     };
   }, []);
 
-  const handleHomePress = () => {
-    navigate('/home');
-  };
+  const handleHomePress = () => navigate('/home');
 
   const handleLogoutPress = () => {
-    const confirmLogout = window.confirm('Czy na pewno chcesz się wylogować?');
-    if (confirmLogout) {
+    if (window.confirm('Czy na pewno chcesz się wylogować?')) {
       localStorage.removeItem('token');
       navigate('/');
     }
   };
 
-  const handleAddFunds = () => {
-    axios
-      .post('http://localhost:3000/api/trade/addFunds', {
-        authorization: localStorage.getItem('token'),
-      })
-      .then((response) => {
-        setMessage(response.data.message || 'Dodano środki!');
-        return axios.post('http://localhost:3000/api/auth/balance', {
-          authorization: localStorage.getItem('token'),
-        });
-      })
-      .then((response) => {
-        setBalances(response.data);
-      })
-      .catch((error) => {
-        setMessage(
-          error.response?.data?.message || 'Wystąpił błąd podczas dodawania środków.'
-        );
+  const handleAddFunds = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Brak tokenu. Zaloguj się ponownie.');
+
+      await axios.post('http://localhost:3000/api/trade/addFunds', { authorization: token });
+      setMessage('Dodano środki!');
+      const response = await axios.post('http://localhost:3000/api/auth/balance', {
+        authorization: token,
       });
+      setBalances(response.data);
+    } catch (error) {
+      console.error(error);
+      setMessage('Wystąpił błąd podczas dodawania środków.');
+    }
   };
 
-  const handleSellCurrency = (currency) => {
-    if (amountToSell[currency] <= 0) {
-      setMessage('Proszę podać prawidłową ilość do sprzedaży.');
-      return;
-    }
+  const handleSellCurrency = async (currency) => {
+    try {
+      if (amountToSell[currency] <= 0) {
+        setMessage('Proszę podać prawidłową ilość do sprzedaży.');
+        return;
+      }
 
-    axios
-      .post('http://localhost:3000/api/trade/sell', {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Brak tokenu. Zaloguj się ponownie.');
+
+      await axios.post('http://localhost:3000/api/trade/sell', {
         source_currency: currency,
         amount: amountToSell[currency],
-        authorization: localStorage.getItem('token'),
-      })
-      .then((response) => {
-        setMessage(response.data.message || 'Transakcja sprzedaży udana!');
-        return axios.post('http://localhost:3000/api/auth/balance', {
-          authorization: localStorage.getItem('token'),
-        });
-      })
-      .then((response) => {
-        setBalances(response.data);
-        setAmountToSell({ ...amountToSell, [currency]: '' });
-      })
-      .catch((error) => {
-        setMessage(
-          error.response?.data?.message || 'Wystąpił błąd podczas realizacji sprzedaży.'
-        );
+        authorization: token,
       });
+
+      setMessage('Transakcja sprzedaży udana!');
+      const response = await axios.post('http://localhost:3000/api/auth/balance', {
+        authorization: token,
+      });
+      setBalances(response.data);
+      setAmountToSell((prev) => ({ ...prev, [currency]: '' }));
+    } catch (error) {
+      console.error(error);
+      setMessage('Wystąpił błąd podczas realizacji sprzedaży.');
+    }
   };
 
   const handleInputChange = (e, currency) => {
@@ -116,46 +117,67 @@ const Home = () => {
           <span className="navButtonText">Wyloguj</span>
         </div>
       </div>
+
       <div className="content">
         {isOffline ? (
           <p className="message">Jesteś offline. Wyświetlane są dane w pamięci podręcznej.</p>
         ) : (
           <>
             <p className="message">{message}</p>
-            {balances.length > 0 ? (
-              <div className="balancesGrid">
-                {balances.map((balance) => (
-                  <div key={balance.id} className="balanceCard">
-                    <div className="currencyName">{balance.currency}</div>
-                    <div className="balanceAmount">Saldo: {balance.balance.toFixed(2)}</div>
-                    {balance.currency === 'PLN' ? (
-                      <div className="addFundsAction">
-                        <button className="addFundsButton" onClick={handleAddFunds}>
-                          Add Funds
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="sellAction">
-                        <input
-                          type="number"
-                          value={amountToSell[balance.currency] || ''}
-                          onChange={(e) => handleInputChange(e, balance.currency)}
-                          placeholder="Ilość do sprzedaży"
-                          min="0"
-                        />
-                        <button
-                          className="sellButton"
-                          onClick={() => handleSellCurrency(balance.currency)}
-                        >
-                          Sell
-                        </button>
-                      </div>
-                    )}
-                  </div>
+            <div className="balancesGrid">
+              {balances.filter((balance) => balance.balance > 0).map((balance) => (
+                <div key={balance.id} className="balanceCard">
+                  <div className="currencyName">{balance.currency}</div>
+                  <div className="balanceAmount">Saldo: {balance.balance.toFixed(2)}</div>
+                  {balance.currency === 'PLN' ? (
+                    <button className="addFundsButton" onClick={handleAddFunds}>
+                      Add Funds
+                    </button>
+                  ) : (
+                    <div className="sellAction">
+                      <input
+                        type="number"
+                        value={amountToSell[balance.currency] || ''}
+                        onChange={(e) => handleInputChange(e, balance.currency)}
+                        placeholder="Ilość do sprzedaży"
+                        min="0"
+                      />
+                      <button
+                        className="sellButton"
+                        onClick={() => handleSellCurrency(balance.currency)}
+                      >
+                        Sell
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <h3>Historia Zakupów</h3>
+            {buyHistory.length > 0 ? (
+              <ul>
+                {buyHistory.map((item) => (
+                  <li key={item.id}>
+                    {item.amount} {item.target_currency} po kursie {item.ask}
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
-              <p className="message">Ładowanie danych konta...</p>
+              <p>Brak danych do wyświetlenia.</p>
+            )}
+
+            <h3>Historia Sprzedaży</h3>
+            {sellHistory.length > 0 ? (
+              <ul>
+                {sellHistory.map((item) => (
+                  <li key={item.id}>
+                    {item.amount} {item.source_currency} sprzedane po kursie {item.bid}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>Brak danych do wyświetlenia.</p>
             )}
           </>
         )}

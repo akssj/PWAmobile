@@ -5,32 +5,34 @@ import axios from 'axios';
 const CurrencyDetails = () => {
   const { currencyCode } = useParams();
   const [history, setHistory] = useState([]);
-  const [message, setMessage] = useState('');
   const [currencyName, setCurrencyName] = useState('');
+  const [message, setMessage] = useState('');
   const [isOffline, setIsOffline] = useState(false);
   const [amount, setAmount] = useState('');
   const [purchaseMessage, setPurchaseMessage] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleNetworkStatus = () => {
-      setIsOffline(!navigator.onLine);
-    };
+    const handleNetworkStatus = () => setIsOffline(!navigator.onLine);
 
     window.addEventListener('online', handleNetworkStatus);
     window.addEventListener('offline', handleNetworkStatus);
 
-    axios
-      .get(`http://localhost:3000/api/data/getCurrencyHistory/${currencyCode}?lastDays=30`)
-      .then((response) => {
-        const data = response.data;
-        setCurrencyName(data.currency || 'Nieznana waluta');
-        setHistory(data.rates || []);
-      })
-      .catch((error) => {
+    const fetchCurrencyData = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:3000/api/data/getCurrencyHistory/${currencyCode}?lastDays=30`
+        );
+        setCurrencyName(response.data.currency || 'Nieznana waluta');
+        setHistory(response.data.rates || []);
+      } catch (error) {
         console.error(error);
         setMessage('Nie udało się pobrać danych historii kursu.');
-      });
+      }
+    };
+
+    if (navigator.onLine) fetchCurrencyData();
+    else setIsOffline(true);
 
     return () => {
       window.removeEventListener('online', handleNetworkStatus);
@@ -38,47 +40,39 @@ const CurrencyDetails = () => {
     };
   }, [currencyCode]);
 
-  const handleHomePress = () => {
-    navigate('/home');
-  };
+  const handleHomePress = () => navigate('/home');
 
   const handleLogoutPress = () => {
-    const confirmLogout = window.confirm('Czy na pewno chcesz się wylogować?');
-    if (confirmLogout) {
+    if (window.confirm('Czy na pewno chcesz się wylogować?')) {
       localStorage.removeItem('token');
       navigate('/');
     }
   };
 
-  const handlePurchase = () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setPurchaseMessage('Błąd: Brak tokenu uwierzytelniającego.');
-      return;
-    }
+  const handlePurchase = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Brak tokenu uwierzytelniającego.');
 
-    if (!amount || isNaN(amount) || amount <= 0) {
-      setPurchaseMessage('Podaj prawidłową kwotę do zakupu.');
-      return;
-    }
+      if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+        setPurchaseMessage('Podaj prawidłową kwotę do zakupu.');
+        return;
+      }
 
-    axios
-      .post(
-        'http://localhost:3000/api/trade/purchase',
-        {
-          target_currency: currencyCode,
-          amount: parseFloat(amount),
-          authorization: localStorage.getItem('token'),
-        })
-      .then((response) => {
-        setPurchaseMessage(response.data.message || 'Zakup udany!');
-        setAmount('');
-      })
-      .catch((error) => {
-        setPurchaseMessage(
-          error.response?.data?.message || 'Wystąpił błąd podczas realizacji transakcji.'
-        );
+      await axios.post('http://localhost:3000/api/trade/purchase', {
+        target_currency: currencyCode,
+        amount: parseFloat(amount),
+        authorization: token,
       });
+
+      setPurchaseMessage('Zakup udany!');
+      setAmount('');
+    } catch (error) {
+      console.error(error);
+      setPurchaseMessage(
+        error.response?.data?.message || 'Wystąpił błąd podczas realizacji transakcji.'
+      );
+    }
   };
 
   return (
