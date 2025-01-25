@@ -16,7 +16,7 @@ const Home = () => {
   
     const fetchExchangeRates = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/data/getExchangeRates');
+        const response = await axios.get('https://api.nbp.pl/api/exchangerates/tables/C/');
         const rates = response.data[0]?.rates || [];
         setExchangeRates(rates);
   

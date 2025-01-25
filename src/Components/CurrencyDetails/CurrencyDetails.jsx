@@ -21,7 +21,7 @@ const CurrencyDetails = () => {
     const fetchCurrencyData = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3000/api/data/getCurrencyHistory/${currencyCode}?lastDays=30`
+          `https://api.nbp.pl/api/exchangerates/rates/c/${currencyCode}/last/30/?format=json`
         );
         setCurrencyName(response.data.currency || 'Nieznana waluta');
         setHistory(response.data.rates || []);
