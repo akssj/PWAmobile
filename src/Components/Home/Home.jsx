@@ -19,8 +19,7 @@ const Home = () => {
         const response = await axios.get('https://api.nbp.pl/api/exchangerates/tables/C/');
         const rates = response.data[0]?.rates || [];
         setExchangeRates(rates);
-  
-        localStorage.setItem('exchangeRates', JSON.stringify(rates));
+
       } catch (error) {
         console.error(error);
         setMessage('Wystąpił błąd przy pobieraniu danych.');
@@ -30,12 +29,7 @@ const Home = () => {
     if (navigator.onLine) {
       fetchExchangeRates();
     } else {
-      const cachedRates = localStorage.getItem('exchangeRates');
-      if (cachedRates) {
-        setExchangeRates(JSON.parse(cachedRates));
-      } else {
-        setMessage('Brak danych w pamięci podręcznej.');
-      }
+      fetchExchangeRates();
       setIsOffline(true);
     }
   

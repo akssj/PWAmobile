@@ -25,14 +25,6 @@ const CurrencyDetails = () => {
         );
         setCurrencyName(response.data.currency || 'Nieznana waluta');
         setHistory(response.data.rates || []);
-
-        localStorage.setItem(
-          `currencyDetails_${currencyCode}`,
-          JSON.stringify({
-            currency: response.data.currency,
-            rates: response.data.rates,
-          })
-        );
       } catch (error) {
         console.error(error);
         setMessage('Nie udało się pobrać danych historii kursu.');
@@ -42,15 +34,7 @@ const CurrencyDetails = () => {
     if (navigator.onLine) {
       fetchCurrencyData();
     } else {
-
-      const cachedData = localStorage.getItem(`currencyDetails_${currencyCode}`);
-      if (cachedData) {
-        const parsedData = JSON.parse(cachedData);
-        setCurrencyName(parsedData.currency || 'Nieznana waluta');
-        setHistory(parsedData.rates || []);
-      } else {
-        setMessage('Brak danych w pamięci podręcznej.');
-      }
+      fetchCurrencyData();
       setIsOffline(true);
     }
 

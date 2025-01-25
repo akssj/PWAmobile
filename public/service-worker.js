@@ -17,6 +17,21 @@ self.addEventListener('install', event => {
     );
 });
 
+self.addEventListener('activate', event => {
+    const cacheWhitelist = [CACHE_NAME, CACHE_NAME_EXCHANGE];
+    event.waitUntil(
+        caches.keys().then(cacheNames =>
+            Promise.all(
+                cacheNames.map(cacheName => {
+                    if (!cacheWhitelist.includes(cacheName)) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            )
+        )
+    );
+});
+
 self.addEventListener('fetch', event => {
     if (event.request.url.includes('/api/data/getCurrencyHistory')) {
         event.respondWith(
@@ -41,17 +56,4 @@ self.addEventListener('fetch', event => {
     }
 });
 
-self.addEventListener('activate', event => {
-    const cacheWhitelist = [CACHE_NAME, CACHE_NAME_EXCHANGE];
-    event.waitUntil(
-        caches.keys().then(cacheNames =>
-            Promise.all(
-                cacheNames.map(cacheName => {
-                    if (!cacheWhitelist.includes(cacheName)) {
-                        return caches.delete(cacheName);
-                    }
-                })
-            )
-        )
-    );
-});
+
