@@ -1,10 +1,17 @@
 # PWA mobile app React + Vite
 ![obraz](https://github.com/user-attachments/assets/9143a763-15d1-4dec-a82b-f472eeb4eb32)
 
-## Description
-TODO
+## opis
+Okrojona wersja aplikacji bez bakendu
+pobiera i wyświetla kursy walut oraz historie kursów z publicznego api nbp
+przechowuje odpowiedzi api, po przejściu w tryb offline wyświetla zapisane dane
+aplikacja działa w trybie mobilnym i pozawala się zainstalować
 
-Currently, two official plugins are available:
+## technologie
+react, css, html
+axios dla zapytań
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## start
+w folderze projektu
+npm install
+npm run dev
