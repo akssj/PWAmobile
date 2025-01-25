@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const LoginSignUp = () => {
@@ -12,19 +11,7 @@ const LoginSignUp = () => {
       alert('Proszę wypełnić oba pola.');
       return;
     }
-
-    try {
-      const response = await axios.post('http://localhost:3000/api/auth/login', {
-        email,
-        password,
-      });
-      localStorage.setItem('token', response.data.token);
-      alert('Logowanie zakończone sukcesem!');
-      navigate('/home');
-    } catch (error) {
-      console.error('Błąd logowania:', error);
-      alert('Nie udało się zalogować. Sprawdź swoje dane.');
-    }
+    navigate('/home');
   };
 
   const handleSignUp = async () => {
@@ -33,17 +20,7 @@ const LoginSignUp = () => {
       return;
     }
 
-    try {
-      const response = await axios.post('http://localhost:3000/api/auth/register', {
-        email,
-        password,
-      });
-      localStorage.setItem('token', response.data.token);
-      alert('Rejestracja zakończona sukcesem! Możesz się teraz zalogować.');
-    } catch (error) {
-      console.error('Błąd rejestracji:', error);
-      alert('Rejestracja nie powiodła się. Spróbuj ponownie.');
-    }
+    navigate('/home');
   };
 
   return (
