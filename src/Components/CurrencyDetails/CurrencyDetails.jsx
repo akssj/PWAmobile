@@ -61,7 +61,7 @@ const CurrencyDetails = () => {
     };
   }, [currencyCode]);
 
-  const handleHomePress = () => navigate('/home');
+  const handleHomePress = () => navigate('/');
 
   const handleLogoutPress = () => {
     if (window.confirm('Czy na pewno chcesz się wylogować?')) {
