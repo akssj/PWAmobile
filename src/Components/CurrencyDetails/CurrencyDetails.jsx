@@ -26,7 +26,6 @@ const CurrencyDetails = () => {
         setCurrencyName(response.data.currency || 'Nieznana waluta');
         setHistory(response.data.rates || []);
 
-        // Zapisz dane w pamięci podręcznej
         localStorage.setItem(
           `currencyDetails_${currencyCode}`,
           JSON.stringify({
@@ -43,7 +42,7 @@ const CurrencyDetails = () => {
     if (navigator.onLine) {
       fetchCurrencyData();
     } else {
-      // Pobierz dane z pamięci podręcznej
+
       const cachedData = localStorage.getItem(`currencyDetails_${currencyCode}`);
       if (cachedData) {
         const parsedData = JSON.parse(cachedData);
