@@ -25,14 +25,35 @@ const CurrencyDetails = () => {
         );
         setCurrencyName(response.data.currency || 'Nieznana waluta');
         setHistory(response.data.rates || []);
+
+        // Zapisz dane w pamięci podręcznej
+        localStorage.setItem(
+          `currencyDetails_${currencyCode}`,
+          JSON.stringify({
+            currency: response.data.currency,
+            rates: response.data.rates,
+          })
+        );
       } catch (error) {
         console.error(error);
         setMessage('Nie udało się pobrać danych historii kursu.');
       }
     };
 
-    if (navigator.onLine) fetchCurrencyData();
-    else setIsOffline(true);
+    if (navigator.onLine) {
+      fetchCurrencyData();
+    } else {
+      // Pobierz dane z pamięci podręcznej
+      const cachedData = localStorage.getItem(`currencyDetails_${currencyCode}`);
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData);
+        setCurrencyName(parsedData.currency || 'Nieznana waluta');
+        setHistory(parsedData.rates || []);
+      } else {
+        setMessage('Brak danych w pamięci podręcznej.');
+      }
+      setIsOffline(true);
+    }
 
     return () => {
       window.removeEventListener('online', handleNetworkStatus);
@@ -85,15 +106,45 @@ const CurrencyDetails = () => {
           <span className="navButtonText">Wyloguj</span>
         </div>
       </div>
-
+  
       <div className="content">
         {isOffline ? (
-          <p className="message">Jesteś offline. Wyświetlane są dane w pamięci podręcznej.</p>
+          <>
+            <p className="message">
+              Jesteś offline. Wyświetlane są dane z pamięci podręcznej.
+            </p>
+            <h1>Szczegóły waluty: {currencyName}</h1>
+            {history.length > 0 ? (
+              <table className="historyTable">
+                <thead>
+                  <tr>
+                    <th> Data </th>
+                    <th> Kurs kupna </th>
+                    <th> Kurs sprzedaży </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history
+                    .slice()
+                    .reverse()
+                    .map((rate, index) => (
+                      <tr key={index}>
+                        <td>{rate.effectiveDate}</td>
+                        <td className="bidRate">{rate.bid.toFixed(4)}</td>
+                        <td className="askRate">{rate.ask.toFixed(4)}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="message">Brak danych w pamięci podręcznej.</p>
+            )}
+          </>
         ) : (
           <>
             <h1>Szczegóły waluty: {currencyName}</h1>
             {message && <p className="message">{message}</p>}
-
+  
             <div className="purchaseSection">
               <h2>Zakup waluty</h2>
               <div>
@@ -110,7 +161,7 @@ const CurrencyDetails = () => {
               <button onClick={handlePurchase}>Kup za PLN</button>
               {purchaseMessage && <p className="purchaseMessage">{purchaseMessage}</p>}
             </div>
-
+  
             {history.length > 0 ? (
               <table className="historyTable">
                 <thead>
@@ -141,6 +192,5 @@ const CurrencyDetails = () => {
       </div>
     </div>
   );
-};
-
+}
 export default CurrencyDetails;
